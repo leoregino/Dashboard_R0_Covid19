@@ -15,9 +15,10 @@ library(ggplot2)
 
 
 ### DIRECTORY PARAMETERS ###
-datos.path <- "C:/Users/Leonardo REGINO/Documents/DATAMINH/Covid19/Dashboards/Data"
-datosImport <- fromJSON(txt = paste(datos.path, "Covid19_Colombia.json", sep = "/") )
-datosImport$nb <-1 
+file_path <- "C:/Users/Leonardo REGINO/Documents/DATAMINH/Covid19/Dashboards/Data"
+file_name <- "Covid19_Colombia.json"
+datosImport <- fromJSON(txt = paste(file_path, file_name, sep = "/") )
+datosImport$nb <-1 # To be able to count/aggregate
 
 datosImport$fecha_de_notificaci_n <-  as.character(as.Date(datosImport$fecha_de_notificaci_n))
 
@@ -43,20 +44,6 @@ ui <- fluidPage(
 
 server <- function(input, output) {
   
-  # data_agg <- reactive({ 
-  #   if (!is.null(input$Depto) & !is.null(input$City) ) {
-  #     datosImport %>% 
-  #       filter(departamento == input$Depto) %>% 
-  #       filter(ciudad_de_ubicaci_n == input$City) %>% 
-  #       filter(fecha_de_notificaci_n >= input$NotifDate[1] & fecha_de_notificaci_n <= input$NotifDate[2] )
-  #   }
-  #   else {
-  #     datosImport
-  #   }
-  #   
-  # })
-  
-  
   data <- reactive({
   
     if (!is.null(input$Depto) & !is.null(input$City) ) {
@@ -69,9 +56,9 @@ server <- function(input, output) {
     else{
       d = datosImport
     }
-    d = d %>% 
-      group_by(fecha_de_notificaci_n) %>% 
-      summarise_if(is.numeric, sum, na.rm=TRUE)
+    # d = d %>% 
+    #   group_by(fecha_de_notificaci_n) %>% 
+    #   summarise_if(is.numeric, sum, na.rm=TRUE)
     
     d
   })
@@ -100,13 +87,27 @@ server <- function(input, output) {
   # plot time series
    output$ts_plot <- renderPlot({
      data <- data()
+     
+     death_df <- data %>%
+       filter(atenci_n == "Fallecido") %>%
+       group_by(fecha_de_notificaci_n) %>%
+       summarise_if(is.numeric, sum, na.rm = TRUE)
+     
+     data <- data %>% 
+               group_by(fecha_de_notificaci_n) %>% 
+               summarise_if(is.numeric, sum, na.rm=TRUE)
+     
      data$fecha_de_notificaci_n <- as.Date(data$fecha_de_notificaci_n)
+     
+     data$type <- "Contaminado"
+     death_df$type <- "Fallecido"
 
-     ggplot(data, aes(x = fecha_de_notificaci_n, y = nb))+
-       geom_line() +
-       geom_point() +
-       labs(x = "Fecha notificacion", title = "Numero de contaminados") +
+     my_df <- rbind(data, death_df)
+     ggplot(my_df)+
+       geom_line(aes(x=fecha_de_notificaci_n ,y=nb,group=type,colour=type )) +
+       labs(x = "Fecha notificacion", title = "Time evolution") +
        theme(plot.title = element_text(hjust = 0.5))
+     
    })
   
 }
