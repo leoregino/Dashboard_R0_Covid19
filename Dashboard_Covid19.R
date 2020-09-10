@@ -20,8 +20,8 @@ file_name <- "Covid19_Colombia.json"
 datosImport <- fromJSON(txt = paste(file_path, file_name, sep = "/") )
 datosImport$nb <-1 # To be able to count/aggregate
 
-datosImport$fecha_de_notificaci_n <-  as.character(as.Date(datosImport$fecha_de_notificaci_n))
-
+#datosImport$fecha_de_notificaci_n <-  as.character(as.Date(datosImport$fecha_de_notificaci_n))
+datosImport$fecha_de_notificaci_n <- as.Date(datosImport$fecha_de_notificaci_n)
 
 ui <- fluidPage(
   
@@ -35,7 +35,8 @@ ui <- fluidPage(
       uiOutput("Date_Range")
       ), 
       mainPanel(
-        plotOutput("ts_plot")
+        plotOutput("ts_plot"),
+        #tableOutput("test_data")
       )
     )
   )
@@ -85,30 +86,80 @@ server <- function(input, output) {
   })
   
   # plot time series
-   output$ts_plot <- renderPlot({
-     data <- data()
-     
-     death_df <- data %>%
-       filter(atenci_n == "Fallecido") %>%
-       group_by(fecha_de_notificaci_n) %>%
-       summarise_if(is.numeric, sum, na.rm = TRUE)
-     
-     data <- data %>% 
-               group_by(fecha_de_notificaci_n) %>% 
-               summarise_if(is.numeric, sum, na.rm=TRUE)
-     
-     data$fecha_de_notificaci_n <- as.Date(data$fecha_de_notificaci_n)
-     
-     data$type <- "Contaminado"
-     death_df$type <- "Fallecido"
-
-     my_df <- rbind(data, death_df)
-     ggplot(my_df)+
-       geom_line(aes(x=fecha_de_notificaci_n ,y=nb,group=type,colour=type )) +
-       labs(x = "Fecha notificacion", title = "Time evolution") +
-       theme(plot.title = element_text(hjust = 0.5))
-     
-   })
+  output$ts_plot <- renderPlot({
+    
+    data <- data()
+    
+    data <- data %>% 
+      group_by(fecha_de_notificaci_n) %>% 
+      summarise_if(is.numeric, sum, na.rm=TRUE)
+    
+    
+    data <- data[seq(4, nrow(data)),]
+    data <- as.data.frame(data)
+    
+    
+    data <- data %>%
+      rename(
+        dates = fecha_de_notificaci_n,
+        I = nb
+      )
+    
+    
+    rest <- estimate_R(
+      data,
+      method = "uncertain_si",
+      config = make_config(
+        list(
+          mean_si = 2.6, 
+          std_mean_si = 1,
+          min_mean_si = 1, 
+          max_mean_si = 4.2,
+          std_si = 1.5, 
+          std_std_si = 0.5,
+          min_std_si = 0.5, 
+          max_std_si = 2.5,
+          n1 = 100, n2 = 100
+        )
+      )
+    )
+    
+    plot(rest)
+    
+  })
+  
+  output$test_data <- renderTable({
+    data <- data()
+    
+    data
+  })
+  
+  
+   # output$ts_plot <- renderPlot({
+   #   data <- data()
+   #   
+   #   death_df <- data %>%
+   #     filter(atenci_n == "Fallecido") %>%
+   #     group_by(fecha_de_notificaci_n) %>%
+   #     summarise_if(is.numeric, sum, na.rm = TRUE)
+   #   
+   #   data <- data %>% 
+   #             group_by(fecha_de_notificaci_n) %>% 
+   #             summarise_if(is.numeric, sum, na.rm=TRUE)
+   #   
+   #   data$fecha_de_notificaci_n <- as.Date(data$fecha_de_notificaci_n)
+   #   
+   #   data$type <- "Contaminado"
+   #   death_df$type <- "Fallecido"
+   # 
+   #   my_df <- rbind(data, death_df)
+   #   ggplot(data, aes(x=fecha_de_notificaci_n, y=nb))+
+   #     geom_bar(stat="identity")+
+   #     #geom_bar(aes(x=fecha_de_notificaci_n ,y=nb,group=type,colour=type )) +
+   #     labs(x = "Fecha notificacion", title = "Time evolution") +
+   #     theme(plot.title = element_text(hjust = 0.5))
+   #   
+   # })
   
 }
 
