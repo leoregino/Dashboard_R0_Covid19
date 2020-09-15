@@ -12,12 +12,18 @@ library(dplyr)
 library(jsonlite)
 library(tidyverse)
 library(ggplot2)
-
+library(EpiEstim)
 
 ### DIRECTORY PARAMETERS ###
-file_path <- "C:/Users/Leonardo REGINO/Documents/DATAMINH/Covid19/Dashboards/Data"
-file_name <- "Covid19_Colombia.json"
-datosImport <- fromJSON(txt = paste(file_path, file_name, sep = "/") )
+#file_path <- "C:/Users/Leonardo REGINO/Documents/DATAMINH/Covid19/Dashboards/Data"
+#file_name <- "Covid19_Colombia.json"
+#datosImport <- fromJSON(txt = paste(file_path, file_name, sep = "/") )
+
+url <- "https://www.datos.gov.co/resource/gt2j-8ykr.json?$limit="
+nb_limit <- "1000000"
+datosImport <- fromJSON(paste0(url,nb_limit))
+
+
 datosImport$nb <-1 # To be able to count/aggregate
 
 #datosImport$fecha_de_notificaci_n <-  as.character(as.Date(datosImport$fecha_de_notificaci_n))
