@@ -5,6 +5,7 @@
 #install.packages("jsonlite")
 #install.packages("tidyverse")
 #install.packages("ggplot2")
+#install.packages("rsconnect") ## Connect with ShinyApps
 
 ### LOAD LIBRARIES ###
 library(shiny)
@@ -20,7 +21,7 @@ library(EpiEstim)
 #datosImport <- fromJSON(txt = paste(file_path, file_name, sep = "/") )
 
 url <- "https://www.datos.gov.co/resource/gt2j-8ykr.json?$limit="
-nb_limit <- "1000000"
+nb_limit <- "10000"
 datosImport <- fromJSON(paste0(url,nb_limit))
 
 
