@@ -24,7 +24,7 @@ url <- "https://www.datos.gov.co/resource/gt2j-8ykr.json?$limit="
 nb_limit <- "1000"
 datosImport2 <- fromJSON(paste0(url,nb_limit))
   
-#datosImport$nb <-1 # To be able to count/aggregate
+datosImport$nb <-1 # To be able to count/aggregate
 
   
 
