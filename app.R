@@ -21,14 +21,25 @@ library(EpiEstim)
 #datosImport <- fromJSON(txt = paste(file_path, file_name, sep = "/") )
 
 url <- "https://www.datos.gov.co/resource/gt2j-8ykr.json?$limit="
-nb_limit <- "10000"
-datosImport <- fromJSON(paste0(url,nb_limit))
+nb_limit <- "1000"
+datosImport2 <- fromJSON(paste0(url,nb_limit))
+  
+#datosImport$nb <-1 # To be able to count/aggregate
 
+  
 
-datosImport$nb <-1 # To be able to count/aggregate
+#datosImport <- datosImport %>% add_column(nb = 1)
+
 
 #datosImport$fecha_de_notificaci_n <-  as.character(as.Date(datosImport$fecha_de_notificaci_n))
-datosImport$fecha_de_notificaci_n <- as.Date(datosImport$fecha_de_notificaci_n)
+datosImport2$fecha_de_notificaci_n <- as.Date(datosImport2$fecha_de_notificaci_n)
+for(i in c("nb")){
+  datosImport2[,i] <- 1
+}
+
+datosImport <- data.frame(datosImport2)
+
+
 
 ui <- fluidPage(
   
@@ -53,8 +64,9 @@ ui <- fluidPage(
 server <- function(input, output) {
   
   data <- reactive({
-  
+
     if (!is.null(input$Depto) & !is.null(input$City) ) {
+      
       d = datosImport %>%
         filter(departamento == input$Depto) %>% 
         filter(ciudad_de_ubicaci_n == input$City) %>% 
@@ -140,34 +152,7 @@ server <- function(input, output) {
     
     data
   })
-  
-  
-   # output$ts_plot <- renderPlot({
-   #   data <- data()
-   #   
-   #   death_df <- data %>%
-   #     filter(atenci_n == "Fallecido") %>%
-   #     group_by(fecha_de_notificaci_n) %>%
-   #     summarise_if(is.numeric, sum, na.rm = TRUE)
-   #   
-   #   data <- data %>% 
-   #             group_by(fecha_de_notificaci_n) %>% 
-   #             summarise_if(is.numeric, sum, na.rm=TRUE)
-   #   
-   #   data$fecha_de_notificaci_n <- as.Date(data$fecha_de_notificaci_n)
-   #   
-   #   data$type <- "Contaminado"
-   #   death_df$type <- "Fallecido"
-   # 
-   #   my_df <- rbind(data, death_df)
-   #   ggplot(data, aes(x=fecha_de_notificaci_n, y=nb))+
-   #     geom_bar(stat="identity")+
-   #     #geom_bar(aes(x=fecha_de_notificaci_n ,y=nb,group=type,colour=type )) +
-   #     labs(x = "Fecha notificacion", title = "Time evolution") +
-   #     theme(plot.title = element_text(hjust = 0.5))
-   #   
-   # })
-  
+
 }
 
 

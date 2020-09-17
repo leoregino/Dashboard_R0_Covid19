@@ -5,6 +5,6 @@ account: leonardoregino
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 2816422
-bundleId: 3633003
+bundleId: 3633054
 url: https://leonardoregino.shinyapps.io/dashboards/
-when: 1600207309.18941
+when: 1600208356.71027
