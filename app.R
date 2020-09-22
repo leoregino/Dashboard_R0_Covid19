@@ -21,32 +21,46 @@ library(EpiEstim)
 #datosImport <- fromJSON(txt = paste(file_path, file_name, sep = "/") )
 
 url <- "https://www.datos.gov.co/resource/gt2j-8ykr.json?$limit="
-nb_limit <- "1000"
-datosImport2 <- fromJSON(paste0(url,nb_limit))
-  
-datosImport$nb <-1 # To be able to count/aggregate
-
-  
-
-#datosImport <- datosImport %>% add_column(nb = 1)
+nb_limit <- "10000"
+datosImport <- fromJSON(paste0(url,nb_limit))
 
 
-#datosImport$fecha_de_notificaci_n <-  as.character(as.Date(datosImport$fecha_de_notificaci_n))
-datosImport2$fecha_de_notificaci_n <- as.Date(datosImport2$fecha_de_notificaci_n)
-for(i in c("nb")){
-  datosImport2[,i] <- 1
-}
+############ TREAT THE MISSING VALUES ############
 
-datosImport <- data.frame(datosImport2)
+# 1. [pa_s_de_procedencia]: If NA --> Assign = COLOMBIA
+datosImport[is.na.data.frame(datosImport$pa_s_de_procedencia), ]$pa_s_de_procedencia <- "COLOMBIA"
 
+# 2. [fis]: If NA --> Assign = fecha_diagnostico - 10
+datosImport[is.na.data.frame(datosImport$fis), ]$fis <- datosImport[is.na.data.frame(datosImport$fis), ]$fecha_diagnostico
 
+# 3. [fecha_diagnostico]: If NA --> Assign = 0001-01-01T00:00:00.000
+datosImport[is.na.data.frame(datosImport$fecha_diagnostico), ]$fecha_diagnostico <-  "0001-01-01T00:00:00.000"
+
+# 4. [fecha_recuperado]: IF NA --> 0001-01-01T00:00:00.000
+datosImport[is.na.data.frame(datosImport$fecha_recuperado), ]$fecha_recuperado <-  "0001-01-01T00:00:00.000"
+
+# 5. [tipo_recuperaci_n]: If NA (Vivo o Fallecido) --> Assign = "NA" 
+datosImport[is.na.data.frame(datosImport$tipo_recuperaci_n), ]$tipo_recuperaci_n <-  "NA" 
+
+# 6. [codigo_pais]: If NA (COLOMBIA) --> Assign = 170 (code ISO 3166-1)
+datosImport[is.na.data.frame(datosImport$codigo_pais), ]$codigo_pais <-  170 
+
+# 7. [nombre_grupo_etnico]: IF NA <-- Assign = "Otro"
+datosImport[is.na.data.frame(datosImport$nombre_grupo_etnico), ]$nombre_grupo_etnico <-  "Otro" 
+
+# 8. [fecha_de_muerte]: IF NA (vivo o Recuperado ) <-- Assign = 0001-01-01T00:00:00.000 
+datosImport[is.na.data.frame(datosImport$fecha_de_muerte), ]$fecha_de_muerte <-  "0001-01-01T00:00:00.000" 
+
+# datosImport[is.na.data.frame(datosImport$fis), ]$fis <- datosImport[is.na.data.frame(datosImport$fis), ]$fecha_diagnostico
+# datosImport[is.na.data.frame(datosImport$pa_s_de_procedencia), ]$pa_s_de_procedencia <- "COLOMBIA"
+
+#datosImport$nb <- 1 # To be able to count/aggregate
+
+#datosImport$fis <- as.Date(datosImport$fis)
 
 ui <- fluidPage(
-  
   titlePanel("Evolution of R0 - Covid19"),
-  
   sidebarLayout(
-    
     sidebarPanel(
       uiOutput("Dept_Filter"),
       uiOutput("City_Filter"),
@@ -65,21 +79,24 @@ server <- function(input, output) {
   
   data <- reactive({
 
+    
     if (!is.null(input$Depto) & !is.null(input$City) ) {
       
       d = datosImport %>%
         filter(departamento == input$Depto) %>% 
         filter(ciudad_de_ubicaci_n == input$City) %>% 
-        filter(fecha_de_notificaci_n > input$NotifDate[1] & fecha_de_notificaci_n < input$NotifDate[2] )
+        filter(fis > input$NotifDate[1] & fis < input$NotifDate[2] )
     }
     
     else{
       d = datosImport
     }
     # d = d %>% 
-    #   group_by(fecha_de_notificaci_n) %>% 
+    #   group_by(fis) %>% 
     #   summarise_if(is.numeric, sum, na.rm=TRUE)
     
+    d[,"nb"] <- NA
+    d[,"nb"] <- 1
     d
   })
   
@@ -99,7 +116,7 @@ server <- function(input, output) {
     
     dateRangeInput('NotifDate',
                   label = 'Filter by Notification Date:',
-                  start =  min(as.Date(datosImport$fecha_de_notificaci_n)) , end = max(as.Date(datosImport$fecha_de_notificaci_n))
+                  start =  min(as.Date(datosImport$fis)) , end = max(as.Date(datosImport$fis))
     )
     
   })
@@ -107,11 +124,13 @@ server <- function(input, output) {
   # plot time series
   output$ts_plot <- renderPlot({
     
-    data <- data()
+    data <- data() 
+    data$fis <- as.Date(data$fis)
+    
     
     data <- data %>% 
-      group_by(fecha_de_notificaci_n) %>% 
-      summarise_if(is.numeric, sum, na.rm=TRUE)
+      group_by(fis) %>% 
+      summarise(nb = sum(nb))
     
     
     data <- data[seq(4, nrow(data)),]
@@ -120,7 +139,7 @@ server <- function(input, output) {
     
     data <- data %>%
       rename(
-        dates = fecha_de_notificaci_n,
+        dates = fis,
         I = nb
       )
     
@@ -147,11 +166,11 @@ server <- function(input, output) {
     
   })
   
-  output$test_data <- renderTable({
-    data <- data()
-    
-    data
-  })
+  # output$test_data <- renderTable({
+  #   data <- data()
+  #   
+  #   data
+  # })
 
 }
 
